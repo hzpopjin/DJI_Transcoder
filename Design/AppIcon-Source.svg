@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <clipPath id="lensClip">
+      <circle cx="512" cy="512" r="202"/>
+    </clipPath>
+  </defs>
+
+  <!-- A flat Material-blue field keeps the original logo's dark blue identity. -->
+  <rect width="1024" height="1024" fill="#062762"/>
+
+  <!-- The original logo's two conversion arrows, simplified to clean vector strokes. -->
+  <path d="M258 690A310 310 0 0 1 742 304"
+        fill="none" stroke="#40C4FF" stroke-width="62"/>
+  <circle cx="258" cy="690" r="31" fill="#40C4FF"/>
+  <path d="M797 352L712 338L772 270Z" fill="#40C4FF" stroke="#40C4FF" stroke-linejoin="round"/>
+  <path d="M766 334A310 310 0 0 1 282 720"
+        fill="none" stroke="#2196F3" stroke-width="62"/>
+  <circle cx="766" cy="334" r="31" fill="#2196F3"/>
+  <path d="M235 670L315 689L249 751Z" fill="#2196F3" stroke="#2196F3" stroke-linejoin="round"/>
+
+  <!-- Camera aperture: six flat blades replace the old rendered glass/metal effect. -->
+  <circle cx="512" cy="512" r="218" fill="#90CAF9"/>
+  <circle cx="512" cy="512" r="202" fill="#0D47A1"/>
+  <g clip-path="url(#lensClip)" stroke="#062762" stroke-width="12" stroke-linejoin="round">
+    <path d="M411 337A202 202 0 0 1 613 337L579 473L512 434Z" fill="#64B5F6"/>
+    <path d="M411 337A202 202 0 0 1 613 337L579 473L512 434Z" fill="#42A5F5" transform="rotate(60 512 512)"/>
+    <path d="M411 337A202 202 0 0 1 613 337L579 473L512 434Z" fill="#2196F3" transform="rotate(120 512 512)"/>
+    <path d="M411 337A202 202 0 0 1 613 337L579 473L512 434Z" fill="#1E88E5" transform="rotate(180 512 512)"/>
+    <path d="M411 337A202 202 0 0 1 613 337L579 473L512 434Z" fill="#1976D2" transform="rotate(240 512 512)"/>
+    <path d="M411 337A202 202 0 0 1 613 337L579 473L512 434Z" fill="#1565C0" transform="rotate(300 512 512)"/>
+  </g>
+  <path d="M512 434L579 473L579 551L512 590L445 551L445 473Z" fill="#061B43"/>
+</svg>
