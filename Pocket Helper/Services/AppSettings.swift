@@ -18,6 +18,8 @@ final class AppSettings: ObservableObject {
         static let automaticCounter = "automaticCounter"
         static let completedInitialScan = "completedInitialScan"
         static let lastAutomaticDetectionDate = "lastAutomaticDetectionDate"
+        static let automaticScanSeenAssetIdentifiers = "automaticScanSeenAssetIdentifiers"
+        static let automaticScanBaselineEstablished = "automaticScanBaselineEstablished"
     }
 
     private let defaults: UserDefaults
@@ -50,6 +52,29 @@ final class AppSettings: ObservableObject {
             } else {
                 defaults.removeObject(forKey: Key.lastAutomaticDetectionDate)
             }
+        }
+    }
+
+    var automaticScanSeenAssetIdentifiers: Set<String> {
+        get { Set(defaults.stringArray(forKey: Key.automaticScanSeenAssetIdentifiers) ?? []) }
+        set { defaults.set(Array(newValue).sorted(), forKey: Key.automaticScanSeenAssetIdentifiers) }
+    }
+
+    var automaticScanBaselineEstablished: Bool {
+        get { defaults.bool(forKey: Key.automaticScanBaselineEstablished) }
+        set { defaults.set(newValue, forKey: Key.automaticScanBaselineEstablished) }
+    }
+
+    var automaticScanCheckpoint: AutomaticScanCheckpoint {
+        get {
+            AutomaticScanCheckpoint(
+                baselineEstablished: automaticScanBaselineEstablished,
+                seenIdentifiers: automaticScanSeenAssetIdentifiers
+            )
+        }
+        set {
+            automaticScanBaselineEstablished = newValue.baselineEstablished
+            automaticScanSeenAssetIdentifiers = newValue.seenIdentifiers
         }
     }
 

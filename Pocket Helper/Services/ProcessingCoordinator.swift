@@ -102,16 +102,26 @@ final class ProcessingCoordinator: ObservableObject {
             lastDetection: settings.lastAutomaticDetectionDate,
             now: now
         )
+        let checkpoint = settings.automaticScanCheckpoint
+        let isInitialBaseline = !checkpoint.baselineEstablished
         PocketLog.info("开始自动扫描 DJI Album 继上次检测之后新增的\(settings.autoDetectionScope.title)")
 
         let existing = (try? context.fetch(FetchDescriptor<MediaJob>())) ?? []
-        let descriptors = await photoLibrary.discoverDJIAssets(
+        let discovery = await photoLibrary.discoverDJIAssets(
             excluding: Set(existing.map(\.sourceLocalIdentifier)),
             addedAfter: addedAfter,
             addedThrough: now,
+            seenIdentifiers: checkpoint.seenIdentifiers,
+            includePreviouslySeen: isInitialBaseline,
             scope: settings.autoDetectionScope
         )
+        var updatedCheckpoint = checkpoint
+        // An unavailable or empty source album is still a valid empty baseline.
+        // Future assets are then recognized by identifier, regardless of capture date.
+        updatedCheckpoint.record(observedIdentifiers: discovery.observedIdentifiers)
+        settings.automaticScanCheckpoint = updatedCheckpoint
         settings.lastAutomaticDetectionDate = now
+        let descriptors = discovery.descriptors
         guard !descriptors.isEmpty else {
             PocketLog.info("扫描未发现新的待处理素材")
             return
@@ -137,11 +147,15 @@ final class ProcessingCoordinator: ObservableObject {
         defer { isScanning = false }
         PocketLog.info("用户从设置重置检测，扫描 DJI Album 最近 7 天未处理\(settings.autoDetectionScope.title)")
         let existing = (try? context.fetch(FetchDescriptor<MediaJob>())) ?? []
-        let descriptors = await photoLibrary.discoverDJIAssets(
+        let discovery = await photoLibrary.discoverDJIAssets(
             excluding: Set(existing.map(\.sourceLocalIdentifier)),
             window: .recentSevenDays,
+            addedThrough: Date(),
+            recordObservedIdentifiers: false,
             scope: settings.autoDetectionScope
         )
+        let descriptors = discovery.descriptors
+        recordPresentedForDetection(descriptors)
         guard !descriptors.isEmpty else {
             PocketLog.info("重置检测完成，最近 7 天没有未处理\(settings.autoDetectionScope.title)")
             messageCenter.post(
@@ -155,6 +169,16 @@ final class ProcessingCoordinator: ObservableObject {
         }
 
         handleDiscoveredDescriptors(descriptors, title: "最近 7 天的素材", context: context)
+    }
+
+    /// A reset scan is an explicit recovery action. Persist only the IDs shown
+    /// in its preview, so skipping them is respected without consuming older
+    /// assets outside the requested seven-day window.
+    private func recordPresentedForDetection(_ descriptors: [MediaAssetDescriptor]) {
+        guard !descriptors.isEmpty else { return }
+        var checkpoint = settings.automaticScanCheckpoint
+        checkpoint.record(observedIdentifiers: Set(descriptors.map(\.id)))
+        settings.automaticScanCheckpoint = checkpoint
     }
 
     func confirmInitialBatch() {
@@ -398,8 +422,25 @@ final class ProcessingCoordinator: ObservableObject {
     }
 
     func deleteReadyOriginals() async {
-        let deletable = jobs(matching: .readyToDelete)
+        let candidates = jobs(matching: .readyToDelete)
+        guard !candidates.isEmpty else { return }
+
+        var deletable: [MediaJob] = []
+        for job in candidates {
+            guard let outputIdentifier = job.outputLocalIdentifier else {
+                markOutputValidationFailure(job, details: "压缩输出缺少照片图库标识，请重新转换后再删除原片。")
+                continue
+            }
+            do {
+                try photoLibrary.validateSavedOutput(identifier: outputIdentifier, kind: job.mediaKind)
+                deletable.append(job)
+            } catch {
+                markOutputValidationFailure(job, details: error.localizedDescription)
+            }
+        }
+        try? modelContext?.save()
         guard !deletable.isEmpty else { return }
+
         do {
             try await photoLibrary.deleteAssets(with: deletable.map(\.sourceLocalIdentifier))
             for job in deletable {
@@ -415,6 +456,21 @@ final class ProcessingCoordinator: ObservableObject {
                 details: error.localizedDescription
             )
         }
+    }
+
+    private func markOutputValidationFailure(_ job: MediaJob, details: String) {
+        job.state = .failed
+        job.retryCount += 1
+        job.errorDetails = details
+        messageCenter.post(
+            severity: .error,
+            jobIdentifier: job.sourceLocalIdentifier,
+            stage: "删除",
+            title: "已保留 \(job.originalFilename) 原片",
+            details: "删除前未能确认压缩输出仍存在或配对有效。\(details)",
+            action: .retry
+        )
+        PocketLog.warning("删除前输出复核未通过，已保留原片，类型=\(job.mediaKind.rawValue)")
     }
 
     private func processQueue() async {
@@ -466,7 +522,7 @@ final class ProcessingCoordinator: ObservableObject {
                 let downloaded = try await photoLibrary.download(descriptor) { value in
                     coordinator.updateProgress(for: jobIdentifier, value: value * 0.18, index: index, total: totalCount)
                 }
-                PocketLog.info("性能[下载]：\(job.originalFilename)，耗时=\(Self.elapsedMilliseconds(since: downloadStartedAt)) ms")
+                PocketLog.performance("下载", durationMilliseconds: Self.elapsedMilliseconds(since: downloadStartedAt))
                 try Task.checkCancellation()
 
                 if let profile = try await transcoder.videoEncodingProfile(
@@ -506,7 +562,7 @@ final class ProcessingCoordinator: ObservableObject {
                         coordinator.updateProgress(for: jobIdentifier, value: 0.18 + value * 0.67, index: index, total: totalCount)
                     }
                 }
-                PocketLog.info("性能[转码与校验]：\(job.originalFilename)，耗时=\(Self.elapsedMilliseconds(since: transcodeStartedAt)) ms")
+                PocketLog.performance("转码与校验", durationMilliseconds: Self.elapsedMilliseconds(since: transcodeStartedAt))
 
                 try Task.checkCancellation()
                 job.state = .validating
@@ -519,7 +575,7 @@ final class ProcessingCoordinator: ObservableObject {
                 try Task.checkCancellation()
                 let saveStartedAt = Date()
                 let outputID = try await photoLibrary.save(result: result, downloaded: downloaded, filenames: filenames)
-                PocketLog.info("性能[PhotoKit保存]：\(job.originalFilename)，耗时=\(Self.elapsedMilliseconds(since: saveStartedAt)) ms")
+                PocketLog.performance("PhotoKit保存", durationMilliseconds: Self.elapsedMilliseconds(since: saveStartedAt))
 
                 job.outputLocalIdentifier = outputID
                 job.outputFilename = filenames.primary
@@ -530,7 +586,13 @@ final class ProcessingCoordinator: ObservableObject {
                 job.state = settings.deleteOriginals ? .readyToDelete : .completed
                 try context.save()
                 photoLibrary.cleanupTemporaryFiles(for: job.sourceLocalIdentifier)
-                PocketLog.info("任务完成：\(job.originalFilename)，总耗时=\(Self.elapsedMilliseconds(since: jobStartedAt)) ms，节省=\(result.bytesSaved) bytes")
+                PocketLog.performance(
+                    "任务总耗时",
+                    durationMilliseconds: Self.elapsedMilliseconds(since: jobStartedAt),
+                    originalBytes: result.originalBytes,
+                    outputBytes: result.outputBytes,
+                    bytesSaved: result.bytesSaved
+                )
 
                 for warning in result.warnings {
                     messageCenter.post(
@@ -858,7 +920,9 @@ final class ProcessingCoordinator: ObservableObject {
 
     private func updateBackgroundTitle(total: Int, filename: String, subtitle: String) {
         if #available(iOS 26.0, *) {
-            backgroundTask?.updateTitle("正在压缩 \(total) 个项目", subtitle: "\(subtitle)：\(filename)")
+            // Lock-screen task text is visible outside the app; keep user media
+            // names out of it while retaining queue progress information.
+            backgroundTask?.updateTitle("正在压缩 \(total) 个项目", subtitle: subtitle)
         }
     }
 

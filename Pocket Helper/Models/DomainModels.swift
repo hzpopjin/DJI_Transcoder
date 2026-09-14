@@ -322,6 +322,65 @@ struct AssetSelectionResolution: Sendable {
     let outputCount: Int
 }
 
+struct AssetDiscoveryResult: Sendable {
+    let descriptors: [MediaAssetDescriptor]
+    let observedIdentifiers: Set<String>
+    let sourceAlbumFound: Bool
+
+    static let noSourceAlbum = AssetDiscoveryResult(
+        descriptors: [],
+        observedIdentifiers: [],
+        sourceAlbumFound: false
+    )
+}
+
+/// Synchronizes the three callbacks involved in a PhotoKit resource request.
+///
+/// PhotoKit can deliver completion immediately, while task cancellation can
+/// happen between installing the continuation and receiving the request ID.
+/// Keeping this transition state explicit makes it impossible to install a
+/// continuation or request ID after the request has already terminated.
+struct ResourceRequestLifecycle: Sendable, Equatable {
+    private(set) var isTerminated = false
+    private(set) var continuationInstalled = false
+    private(set) var requestIDInstalled = false
+
+    mutating func installContinuation() -> Bool {
+        guard !isTerminated else { return false }
+        continuationInstalled = true
+        return true
+    }
+
+    mutating func installRequestID() -> Bool {
+        guard !isTerminated else { return false }
+        requestIDInstalled = true
+        return true
+    }
+
+    mutating func terminate() {
+        isTerminated = true
+    }
+}
+
+struct AutomaticScanCheckpoint: Sendable, Equatable {
+    var baselineEstablished: Bool
+    var seenIdentifiers: Set<String>
+
+    init(baselineEstablished: Bool = false, seenIdentifiers: Set<String> = []) {
+        self.baselineEstablished = baselineEstablished
+        self.seenIdentifiers = seenIdentifiers
+    }
+
+    mutating func record(observedIdentifiers: Set<String>) {
+        baselineEstablished = true
+        seenIdentifiers.formUnion(observedIdentifiers)
+    }
+
+    func shouldInclude(identifier: String) -> Bool {
+        !baselineEstablished || !seenIdentifiers.contains(identifier)
+    }
+}
+
 struct PickerAssetResolution: Sendable {
     let identifiers: [String]
     let unresolvedCount: Int
@@ -348,7 +407,7 @@ struct TranscodeResult: Sendable {
     let outputBytes: Int64
     let warnings: [String]
 
-    var bytesSaved: Int64 { max(0, originalBytes - outputBytes) }
+    nonisolated var bytesSaved: Int64 { max(0, originalBytes - outputBytes) }
 }
 
 enum PipelineError: LocalizedError, Sendable {

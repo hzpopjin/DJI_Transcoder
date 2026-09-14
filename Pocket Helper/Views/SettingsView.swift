@@ -4,6 +4,7 @@ struct SettingsView: View {
     @EnvironmentObject private var settings: AppSettings
     @EnvironmentObject private var coordinator: ProcessingCoordinator
     @State private var showsResetDetectionConfirmation = false
+    @State private var introduction: IntroductionDestination?
 
     var body: some View {
         NavigationStack {
@@ -125,10 +126,30 @@ struct SettingsView: View {
                 }
 
                 Section("关于") {
-                    LabeledContent("版本", value: "1.0")
+                    LabeledContent("版本", value: "\(AppIntroduction.installedVersion) (\(AppIntroduction.installedBuild))")
+                    Button {
+                        introduction = .welcome
+                    } label: {
+                        Label("使用指南", systemImage: "book.closed")
+                    }
+                    Button {
+                        introduction = .whatsNew
+                    } label: {
+                        Label("What’s New · 版本亮点", systemImage: "sparkles")
+                    }
+                    NavigationLink {
+                        PrivacyPolicyView()
+                    } label: {
+                        Label("隐私政策", systemImage: "hand.raised")
+                    }
                 }
             }
             .navigationTitle("设置")
+            .sheet(item: $introduction) { destination in
+                AppIntroductionView(destination: destination, isReplay: true) {
+                    introduction = nil
+                }
+            }
         }
     }
 

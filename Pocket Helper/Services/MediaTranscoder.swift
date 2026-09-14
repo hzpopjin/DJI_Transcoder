@@ -44,7 +44,13 @@ actor MediaTranscoder {
                 progress: progress
             )
         }
-        PocketLog.info("性能[媒体管线]：\(media.descriptor.originalFilename)，耗时=\(Self.elapsedMilliseconds(since: startedAt)) ms")
+        PocketLog.performance(
+            "媒体管线",
+            durationMilliseconds: Self.elapsedMilliseconds(since: startedAt),
+            originalBytes: result.originalBytes,
+            outputBytes: result.outputBytes,
+            bytesSaved: result.bytesSaved
+        )
         return result
     }
 
@@ -53,6 +59,7 @@ actor MediaTranscoder {
         quality: PhotoQuality,
         progress: @escaping @Sendable (Double) -> Void
     ) async throws -> TranscodeResult {
+        let startedAt = Date()
         progress(0.05)
         let output = media.primaryURL.deletingLastPathComponent().appendingPathComponent("output.HEIC")
         try writeHEIF(sourceURL: media.primaryURL, outputURL: output, quality: quality.compressionQuality, contentIdentifier: nil)
@@ -65,7 +72,12 @@ actor MediaTranscoder {
             try? FileManager.default.removeItem(at: output)
             throw PipelineError.noSavings
         }
-        PocketLog.info("照片转码完成：\(media.descriptor.originalFilename)，原始=\(originalBytes) bytes，输出=\(outputBytes) bytes")
+        PocketLog.performance(
+            "照片转码",
+            durationMilliseconds: Self.elapsedMilliseconds(since: startedAt),
+            originalBytes: originalBytes,
+            outputBytes: outputBytes
+        )
         return TranscodeResult(
             primaryURL: output,
             pairedVideoURL: nil,
@@ -80,6 +92,7 @@ actor MediaTranscoder {
         quality: VideoQuality,
         progress: @escaping @Sendable (Double) -> Void
     ) async throws -> TranscodeResult {
+        let startedAt = Date()
         let output = media.primaryURL.deletingLastPathComponent().appendingPathComponent("output.mov")
         try await exportHEVC(
             sourceURL: media.primaryURL,
@@ -96,7 +109,12 @@ actor MediaTranscoder {
             try? FileManager.default.removeItem(at: output)
             throw PipelineError.noSavings
         }
-        PocketLog.info("视频转码完成：\(media.descriptor.originalFilename)，原始=\(originalBytes) bytes，输出=\(outputBytes) bytes")
+        PocketLog.performance(
+            "视频转码",
+            durationMilliseconds: Self.elapsedMilliseconds(since: startedAt),
+            originalBytes: originalBytes,
+            outputBytes: outputBytes
+        )
         return TranscodeResult(
             primaryURL: output,
             pairedVideoURL: nil,
@@ -113,6 +131,7 @@ actor MediaTranscoder {
         resolution: LiveMotionResolution,
         progress: @escaping @Sendable (Double) -> Void
     ) async throws -> TranscodeResult {
+        let startedAt = Date()
         guard let pairedInput = media.pairedVideoURL else {
             throw PipelineError.resourceMissing("Live Photo 动态资源")
         }
@@ -151,7 +170,12 @@ actor MediaTranscoder {
         let warnings = outputBytes < originalBytes
             ? []
             : ["Live Photo 输出未减小，但已保留并保存完整的静态与动态配对资源。"]
-        PocketLog.info("Live Photo 转码完成：\(media.descriptor.originalFilename)，原始=\(originalBytes) bytes，输出=\(outputBytes) bytes")
+        PocketLog.performance(
+            "Live Photo 转码",
+            durationMilliseconds: Self.elapsedMilliseconds(since: startedAt),
+            originalBytes: originalBytes,
+            outputBytes: outputBytes
+        )
         return TranscodeResult(
             primaryURL: photoOutput,
             pairedVideoURL: videoOutput,
@@ -229,8 +253,12 @@ actor MediaTranscoder {
         let targetBytes = Int64(max(1, CMTimeGetSeconds(duration)) * profile.targetBitrate / 8)
         session.fileLengthLimit = targetBytes
         session.shouldOptimizeForNetworkUse = true
-        PocketLog.info(
-            "视频参数[输入]：\(sourceURL.lastPathComponent)，输出尺寸=\(profile.width)x\(profile.height)，时长=\(String(format: "%.3f", CMTimeGetSeconds(duration))) s，帧率=\(String(format: "%.3f", profile.frameRate))，目标码率=\(Int(profile.targetBitrate.rounded())) bps"
+        PocketLog.performance(
+            "视频输入",
+            width: profile.width,
+            height: profile.height,
+            frameRate: profile.frameRate,
+            targetBitrate: Int64(profile.targetBitrate.rounded())
         )
 
         var metadata = try await sourceAsset.load(.metadata)
@@ -262,8 +290,11 @@ actor MediaTranscoder {
         let outputBytes = try fileSize(outputURL)
         let durationSeconds = max(0.001, CMTimeGetSeconds(duration))
         let actualBitrate = Double(outputBytes * 8) / durationSeconds
-        PocketLog.info(
-            "视频参数[输出]：\(outputURL.lastPathComponent)，大小=\(outputBytes) bytes，实际码率=\(Int(actualBitrate.rounded())) bps，导出耗时=\(Self.elapsedMilliseconds(since: exportStartedAt)) ms"
+        PocketLog.performance(
+            "视频输出",
+            durationMilliseconds: Self.elapsedMilliseconds(since: exportStartedAt),
+            outputBytes: outputBytes,
+            actualBitrate: Int64(actualBitrate.rounded())
         )
         progress(1)
     }
