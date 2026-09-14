@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		A10914000000000000000001 /* WhatsNewKit in Frameworks */ = {isa = PBXBuildFile; productRef = A10914000000000000000002 /* WhatsNewKit */; };
 		000000000000000180000000 /* Pocket Helper Live Activity.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 000000000000000000000122 /* Pocket Helper Live Activity.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A10914000000000000000001 /* WhatsNewKit in Frameworks */ = {isa = PBXBuildFile; productRef = A10914000000000000000002 /* WhatsNewKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -215,6 +215,8 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				"zh-Hans",
+				"zh-Hant",
 				Base,
 			);
 			mainGroup = 000000000000000000000001;
@@ -282,25 +284,6 @@
 			targetProxy = 000000000000000150000002 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-        A10914000000000000000003 /* XCRemoteSwiftPackageReference "WhatsNewKit" */ = {
-            isa = XCRemoteSwiftPackageReference;
-            repositoryURL = "https://github.com/SvenTiigi/WhatsNewKit.git";
-            requirement = {
-                kind = exactVersion;
-                version = 2.2.1;
-            };
-        };
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-        A10914000000000000000002 /* WhatsNewKit */ = {
-            isa = XCSwiftPackageProductDependency;
-            package = A10914000000000000000003 /* XCRemoteSwiftPackageReference "WhatsNewKit" */;
-            productName = WhatsNewKit;
-        };
-/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCBuildConfiguration section */
 		000000000000000011000000 /* Debug configuration for PBXProject "DJI_Transcoder" */ = {
@@ -659,6 +642,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		A10914000000000000000003 /* XCRemoteSwiftPackageReference "WhatsNewKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SvenTiigi/WhatsNewKit.git";
+			requirement = {
+				kind = exactVersion;
+				version = 2.2.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A10914000000000000000002 /* WhatsNewKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A10914000000000000000003 /* XCRemoteSwiftPackageReference "WhatsNewKit" */;
+			productName = WhatsNewKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 000000000000000000000000 /* Project object */;
 }

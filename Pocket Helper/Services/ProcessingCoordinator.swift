@@ -77,7 +77,7 @@ final class ProcessingCoordinator: ObservableObject {
                 severity: .error,
                 stage: "权限",
                 title: "无法访问照片",
-                details: "请在系统设置中允许 Pocket Helper 访问照片。",
+                details: "请在系统设置中允许 \(AppIdentity.displayName) 访问照片。",
                 action: .openSettings
             )
             return
@@ -214,7 +214,7 @@ final class ProcessingCoordinator: ObservableObject {
         if resolution.outputCount > 0 || resolution.unsupportedCount > 0 || alreadyQueuedCount > 0 {
             var reasons: [String] = []
             if alreadyQueuedCount > 0 { reasons.append("\(alreadyQueuedCount) 个已在队列或历史记录中") }
-            if resolution.outputCount > 0 { reasons.append("\(resolution.outputCount) 个是 Pocket Helper 输出") }
+            if resolution.outputCount > 0 { reasons.append("\(resolution.outputCount) 个是 \(AppIdentity.displayName) 输出") }
             if resolution.unsupportedCount > 0 { reasons.append("\(resolution.unsupportedCount) 个无法读取") }
             messageCenter.post(
                 severity: .warning,
@@ -336,9 +336,31 @@ final class ProcessingCoordinator: ObservableObject {
         try? modelContext?.save()
     }
 
+    var canClearPendingQueue: Bool {
+        let pending = allJobs().filter { $0.state.isInProcessingQueue }
+        return !isQueuePaused && !pending.isEmpty && pending.allSatisfy { $0.state == .queued }
+    }
+
     func resetPendingJobs() {
-        guard !isProcessing else { return }
-        let resettable = allJobs().filter { [.queued, .paused, .failed, .skipped].contains($0.state) }
+        // Cancellation must finish before jobs or their working files can be removed.
+        guard processingTask == nil, !isProcessing, !isScanning, !isImportingSelection,
+              let context = modelContext else { return }
+        let resettable = allJobs().filter { $0.state.isInProcessingQueue }
+        guard !resettable.isEmpty,
+              resettable.allSatisfy({ [.queued, .paused, .failed].contains($0.state) }) else { return }
+
+        if canClearPendingQueue {
+            let identifiers = resettable.map(\.sourceLocalIdentifier)
+            for job in resettable { context.delete(job) }
+            try? context.save()
+            for identifier in identifiers {
+                photoLibrary.cleanupTemporaryFiles(for: identifier)
+                confirmedExperimentalVideoIdentifiers.remove(identifier)
+            }
+            PocketLog.info("清空待处理队列，数量=\(identifiers.count)")
+            return
+        }
+
         for job in resettable {
             job.state = .queued
             job.progress = 0
@@ -346,7 +368,7 @@ final class ProcessingCoordinator: ObservableObject {
             job.completedAt = nil
         }
         isQueuePaused = false
-        try? modelContext?.save()
+        try? context.save()
         PocketLog.info("重置处理队列，数量=\(resettable.count)")
     }
 
@@ -392,6 +414,33 @@ final class ProcessingCoordinator: ObservableObject {
     func requestDeleteConfirmation() {
         guard readyToDeleteCount > 0 else { return }
         deleteConfirmationRequestID = UUID()
+    }
+
+    func keepReadyOriginals() {
+        guard let context = modelContext else { return }
+        let candidates = jobs(matching: .readyToDelete)
+        guard !candidates.isEmpty else { return }
+        let previousUpdateDates = candidates.map(\.updatedAt)
+        for job in candidates {
+            // Retain the record so future scans and imports still recognize the processed source.
+            job.state = .completed
+        }
+        do {
+            try context.save()
+            deleteConfirmationRequestID = nil
+            PocketLog.info("用户选择保留原片，已完成处理数量=\(candidates.count)")
+        } catch {
+            for (job, updatedAt) in zip(candidates, previousUpdateDates) {
+                job.state = .readyToDelete
+                job.updatedAt = updatedAt
+            }
+            messageCenter.post(
+                severity: .error,
+                stage: "保留原片",
+                title: "未能保存保留原片的选择",
+                details: error.localizedDescription
+            )
+        }
     }
 
     func confirmExperimentalVideoConversion() {
@@ -664,7 +713,7 @@ final class ProcessingCoordinator: ObservableObject {
         if wasInterrupted { isQueuePaused = true }
         PocketLog.info("队列执行结束，success=\(success)，可删除原片=\(readyToDeleteCount)")
         let finalTitle = wasInterrupted ? "压缩已暂停" : (success ? "压缩完成" : "部分素材处理失败")
-        let finalSubtitle = wasInterrupted ? "打开 App 可继续处理" : (success ? "结果已保存到 Pocket Helper 相簿" : "打开 App 查看消息中心")
+        let finalSubtitle = wasInterrupted ? "打开 App 可继续处理" : (success ? "结果已保存到「\(PhotoLibraryService.albumName)」相簿" : "打开 App 查看消息中心")
         await completeBackgroundProcessing(
             title: finalTitle,
             subtitle: finalSubtitle,
@@ -864,7 +913,7 @@ final class ProcessingCoordinator: ObservableObject {
                 severity: .warning,
                 stage: "后台任务",
                 title: "无法注册后台处理",
-                details: "后台任务标识未获系统许可，请保持 Pocket Helper 在前台。",
+                details: "后台任务标识未获系统许可，请保持 \(AppIdentity.displayName) 在前台。",
                 showsBanner: true
             )
             return
@@ -888,7 +937,7 @@ final class ProcessingCoordinator: ObservableObject {
                 severity: .warning,
                 stage: "后台任务",
                 title: "无法在后台继续",
-                details: "请保持 Pocket Helper 在前台。\n\(error.localizedDescription)",
+                details: "请保持 \(AppIdentity.displayName) 在前台。\n\(error.localizedDescription)",
                 showsBanner: true
             )
         }

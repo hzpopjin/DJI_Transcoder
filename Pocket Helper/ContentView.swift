@@ -74,7 +74,9 @@ struct ContentView: View {
             Button("删除原片", role: .destructive) {
                 Task { await coordinator.deleteReadyOriginals() }
             }
-            Button("保留原片", role: .cancel) {}
+            Button("保留原片", role: .cancel) {
+                coordinator.keepReadyOriginals()
+            }
         } message: {
             Text("压缩结果已经保存并通过校验。PhotoKit 还会显示一次系统确认。")
         }

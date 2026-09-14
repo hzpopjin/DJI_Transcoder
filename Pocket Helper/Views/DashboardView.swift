@@ -11,7 +11,7 @@ struct DashboardView: View {
     @State private var pickerItems: [PhotosPickerItem] = []
 
     private var activeJobs: [MediaJob] {
-        jobs.filter { $0.state.isActive || [.paused, .failed].contains($0.state) }
+        jobs.filter { $0.state.isInProcessingQueue }
     }
 
     private var savedBytes: Int64 {
@@ -27,7 +27,7 @@ struct DashboardView: View {
                     dashboard
                 }
             }
-            .navigationTitle("Pocket Helper")
+            .navigationTitle(AppIdentity.displayName)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -92,9 +92,14 @@ struct DashboardView: View {
                             Text("处理队列")
                                 .font(.title3.bold())
                             Spacer()
-                            Button("重置") { coordinator.resetPendingJobs() }
+                            Button(coordinator.canClearPendingQueue ? "清空队列" : "重置") {
+                                coordinator.resetPendingJobs()
+                            }
                                 .font(.subheadline)
-                                .disabled(coordinator.isProcessing)
+                                .disabled(coordinator.isProcessing || coordinator.isScanning || coordinator.isImportingSelection)
+                                .accessibilityHint(coordinator.canClearPendingQueue
+                                    ? "移除待处理任务，不删除相册中的素材"
+                                    : "恢复为等待处理，再次点击可清空队列")
                         }
                         ForEach(activeJobs) { job in
                             JobRow(job: job)
@@ -290,7 +295,7 @@ struct InitialScanPreviewView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("包含 \(coordinator.pendingNonDJICount) 个非 DJI/Pocket 素材")
                                     .font(.body.weight(.semibold))
-                                Text("Pocket Helper 同样可以转换，但请先确认这些是你有意选择的素材。")
+                                Text("\(AppIdentity.displayName) 同样可以转换，但请先确认这些是你有意选择的素材。")
                                     .font(.footnote)
                                     .foregroundStyle(.secondary)
                             }

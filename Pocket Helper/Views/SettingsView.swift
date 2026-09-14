@@ -52,7 +52,7 @@ struct SettingsView: View {
                 } header: {
                     Text("原片")
                 } footer: {
-                    Text("Pocket Helper 不会静默删除。完成后需要先在 App 中确认，再通过 PhotoKit 的系统确认。")
+                    Text("\(AppIdentity.displayName) 不会静默删除。完成后需要先在 App 中确认，再通过 PhotoKit 的系统确认。")
                 }
 
                 Section {

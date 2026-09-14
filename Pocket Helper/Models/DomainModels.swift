@@ -110,6 +110,8 @@ enum ProcessingState: String, Codable, CaseIterable, Sendable {
     }
 
     var isHistoryRecord: Bool { !isActive }
+
+    var isInProcessingQueue: Bool { isActive || self == .paused || self == .failed }
 }
 
 enum VideoQuality: String, Codable, CaseIterable, Identifiable, Sendable {
@@ -303,7 +305,9 @@ struct MediaAssetDescriptor: Identifiable, Sendable {
     let pixelWidth: Int
     let pixelHeight: Int
     let source: MediaSource
+}
 
+extension MediaAssetDescriptor {
     init(asset: PHAsset, resource: PHAssetResource, estimatedBytes: Int64, source: MediaSource) {
         id = asset.localIdentifier
         kind = asset.mediaSubtypes.contains(.photoLive) ? .livePhoto : (asset.mediaType == .video ? .video : .photo)

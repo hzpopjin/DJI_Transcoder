@@ -26,7 +26,7 @@ python3 -m http.server 8765 --bind 127.0.0.1 --directory Website
 python3 Website/sync_privacy.py
 ```
 
-脚本生成 `Pocket Helper/Resources/PrivacyPolicy.html`，保留相同政策、排版与联系信息，移除介绍部分和图片依赖。App 的“设置 → 关于 → 隐私政策”离线显示此文件。
+脚本生成 `Pocket Helper/{en,zh-Hans,zh-Hant}.lproj/PrivacyPolicy.html`，保留相同政策、排版与联系信息，移除介绍部分和图片依赖。App 的“设置 → 关于 → 隐私政策”离线显示此文件。
 
 ## 部署时
 

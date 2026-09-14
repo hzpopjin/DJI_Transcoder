@@ -1,5 +1,13 @@
 # Pocket Helper 上架前检查
 
+## 2026-09-14 补充：App 名称本地化
+
+- 简体、繁体中文应用语言均显示用户指定的「口袋相机助手」，英文与未支持语言回退为「Pocket Helper」。主应用和实时活动扩展通过 `InfoPlist.strings` 本地化系统名称；应用内标题、引导、WhatsNewKit、提示和离线隐私政策使用同一名称。
+- 此次只调整品牌名称，不代表已完成所有界面文案的英文翻译。输出相簿仍保留实际名称 `Pocket Helper`，使用说明引用该真实相簿名称，避免语言切换导致重复相簿或找不到历史输出。
+- App Store Connect 的「App 信息 → 名称」需独立配置：简体中文、繁体中文填写「口袋相机助手」；英文和其他已添加语言填写「Pocket Helper」。主要语言使用英文可让缺少本地化的商店元数据回退到英文。此处记录配置要求，未修改 App Store Connect 后台。[Apple 本地化说明](https://developer.apple.com/help/app-store-connect/manage-app-information/localize-app-information)
+- 模拟器 35 项测试通过（30 XCTest + 5 Swift Testing，0 失败），包含语言匹配、系统与应用内名称一致、离线政策资源校验。日志：`/tmp/pockethelper-localized-name-tests.log`。
+- 无签名 iOS Release 构建通过，已核对主应用、实时活动扩展的三份名称资源及英文默认值，确认本地化隐私政策进入产物。日志：`/tmp/pockethelper-localized-name-release.log`。保留既有 PhotoLibraryService actor isolation 警告；不代表签名归档、真机或商店验收。
+
 ## 2026-09-14 补充：图标、启动引导与 WhatsNewKit
 
 当前工作区包含此前的媒体与隐私整改，以下 2026-09-11 正文是历史检查快照，不能直接视为当前代码仍有全部所列问题。本次聚焦图标、启动流程与功能介绍。

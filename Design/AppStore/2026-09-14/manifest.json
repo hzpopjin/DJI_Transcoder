@@ -1,0 +1,32 @@
+[
+  {
+    "path": "iPhone-Posters/01-welcome.jpg",
+    "sha256": "278fd2e5032c401da7e17345e904fbe1c4ecee6cdefeff1599de71fee106e099",
+    "bytes": 2646220
+  },
+  {
+    "path": "iPhone-Posters/02-selection.jpg",
+    "sha256": "d0463fd133a450a25de983d1032c27af530849181472128809bba454d291dced",
+    "bytes": 2411802
+  },
+  {
+    "path": "iPhone-Posters/03-settings.jpg",
+    "sha256": "36eec71e479756132334a57c162beea53e2131becb13f8bac44812c776ec9200",
+    "bytes": 2403581
+  },
+  {
+    "path": "iPad/01-welcome.jpg",
+    "sha256": "ede4726760e4095b2efd2ab1e87e38fdb6dc6bc201fe30bd3d5f3bba57cd8813",
+    "bytes": 531394
+  },
+  {
+    "path": "iPad/02-selection.jpg",
+    "sha256": "deac28b6f286b9bdbab639d3770522c586b7630d93f771d096f19c6ffaef1c79",
+    "bytes": 866664
+  },
+  {
+    "path": "iPad/03-settings.jpg",
+    "sha256": "ef5c3ee3cfba116a3ff20671fc4866c6487d7e72cbe571d17bd08a75c4e08671",
+    "bytes": 716912
+  }
+]

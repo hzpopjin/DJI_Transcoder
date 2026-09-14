@@ -63,7 +63,7 @@ private struct WelcomeGuideView: View {
             .id(page)
             .background(Color("IntroductionBackground").ignoresSafeArea())
             .safeAreaInset(edge: .bottom, spacing: 0) { footer }
-            .navigationTitle("Pocket Helper")
+            .navigationTitle(AppIdentity.displayName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -93,7 +93,7 @@ private struct WelcomeGuideView: View {
             }
 
             VStack(alignment: .leading, spacing: 10) {
-                Text(["口袋相机助手", "简单三步，开始转换", "每一份原片，由你决定"][page])
+                Text([AppIdentity.displayName, "简单三步，开始转换", "每一份原片，由你决定"][page])
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Color("BrandBlue"))
                 Text(["让回忆更轻。\n给精彩留点空间。", "从选择素材，\n到存好新副本。", "安心处理，\n放心保留。"][page])
@@ -131,7 +131,7 @@ private struct WelcomeGuideView: View {
                 Divider()
                 feature("02  选择并开始转换", detail: "在「转换」授权访问照片，点「选择素材」或「扫描」，确认列表后开始转换。默认不会自动转换。", symbol: "photo.badge.plus", color: Color("BrandMediumBlue"))
                 Divider()
-                feature("03  查看保存结果", detail: "到系统照片的「Pocket Helper」相簿查看新副本，在「历史」查看处理结果与节省空间。", symbol: "checkmark.circle.fill", color: Color("BrandLightBlue"))
+                feature("03  查看保存结果", detail: "到系统照片的「\(PhotoLibraryService.albumName)」相簿查看新副本，在「历史」查看处理结果与节省空间。", symbol: "checkmark.circle.fill", color: Color("BrandLightBlue"))
             }
             note("自动检测需要完整照片访问权限；选择有限访问时，可手动选取已授权的素材。", symbol: "photo.badge.checkmark")
         default:

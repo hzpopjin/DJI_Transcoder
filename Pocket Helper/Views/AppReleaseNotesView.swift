@@ -33,7 +33,7 @@ struct AppReleaseNotesView: View {
     private var releaseNotes: WhatsNew {
         WhatsNew(
             version: .init(stringLiteral: AppIntroduction.releaseVersion),
-            title: .init(text: .init("Pocket Helper \(AppIntroduction.releaseVersion)\n新功能")),
+            title: .init(text: .init("\(AppIdentity.displayName) \(AppIntroduction.releaseVersion)\n新功能")),
             features: [
                 .init(
                     image: .init {
@@ -53,7 +53,7 @@ struct AppReleaseNotesView: View {
                 .init(
                     image: .init(systemName: "list.bullet.rectangle.fill", foregroundColor: Color("BrandMediumBlue")),
                     title: "进度与结果，一目了然",
-                    subtitle: "查看进度、暂停或继续队列，在「历史」查看结果。新副本保存在系统照片的 Pocket Helper 相簿。"
+                    subtitle: .init("查看进度、暂停或继续队列，在「历史」查看结果。新副本保存在系统照片的「\(PhotoLibraryService.albumName)」相簿。")
                 ),
                 .init(
                     image: .init(systemName: "checkmark.shield.fill", foregroundColor: Color("BrandLightBlue")),

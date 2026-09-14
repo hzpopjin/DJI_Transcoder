@@ -13,9 +13,7 @@ end = source.index('  <section id="support"', start)
 policy = source[start:end]
 assert "service@randomdance.cn" in policy
 assert "吉尔利斯文化传媒（杭州）有限公司" in policy
-output = root.parent / "Pocket Helper" / "Resources" / "PrivacyPolicy.html"
-output.parent.mkdir(parents=True, exist_ok=True)
-output.write_text(
+document = (
     '<!doctype html>\n<html lang="zh-CN"><head><meta charset="utf-8">'
     '<meta name="viewport" content="width=device-width, initial-scale=1">'
     '<meta name="color-scheme" content="light"><title>隐私政策 · Pocket Helper</title>'
@@ -23,7 +21,14 @@ output.write_text(
     '.policy-layout{display:block}.contents{position:static;display:flex;flex-wrap:wrap;'
     'gap:4px 18px;border:0;padding:0 0 24px}.policy-body{max-width:none}'
     '.policy-section .wrap{width:calc(100% - 36px);max-width:800px}'
-    '</style></head><body>' + policy + '</body></html>\n',
-    encoding="utf-8",
+    '</style></head><body>' + policy + '</body></html>\n'
 )
-print(f"Updated {output}")
+# The policy body remains Chinese; only the product name follows the App language.
+# Keep these generated copies in sync instead of maintaining three separate policies.
+for locale, name in [("en", "Pocket Helper"), ("zh-Hans", "口袋相机助手"), ("zh-Hant", "口袋相机助手")]:
+    localized = document.replace("口袋相机助手（Pocket Helper，以下简称", name + "（以下简称")
+    localized = localized.replace("Pocket Helper", name)
+    output = root.parent / "Pocket Helper" / f"{locale}.lproj" / "PrivacyPolicy.html"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(localized, encoding="utf-8")
+    print(f"Updated {output}")
